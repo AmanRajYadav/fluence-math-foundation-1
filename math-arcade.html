@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>MATH ARCADE — Base Banao</title>
+<style>
+/* ============================================================
+   MATH ARCADE — single-file, offline, phone-first
+   Built from the 8 & 9 July class transcripts.
+   ============================================================ */
+
+:root{
+  --bg:#070a1c;
+  --bg2:#0d1330;
+  --cyan:#22f5ff;
+  --magenta:#ff2e97;
+  --yellow:#ffe14d;
+  --green:#38ffb0;
+  --red:#ff4d5e;
+  --purple:#9a6bff;
+  --ink:#eaf2ff;
+  --dim:#8b9bc9;
+  --line:rgba(255,255,255,.12);
+  --mono:ui-monospace,'SF Mono','Cascadia Mono','Roboto Mono','Courier New',monospace;
+  --sans:system-ui,'Segoe UI',Roboto,-apple-system,sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  overflow:hidden;
+  touch-action:manipulation;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* --- animated grid backdrop --- */
+#bg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% 0%, #1b2456 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, #2a0f3d 0%, transparent 55%),
+    var(--bg);
+}
+#bg::before{
+  content:'';position:absolute;inset:-50%;
+  background-image:
+    linear-gradient(rgba(34,245,255,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,245,255,.07) 1px, transparent 1px);
+  background-size:44px 44px;
+  transform:perspective(340px) rotateX(62deg);
+  transform-origin:50% 100%;
+  animation:scroll 2.6s linear infinite;
+}
+@keyframes scroll{to{background-position:0 44px}}
+
+#vig{
+  position:fixed;inset:0;z-index:98;pointer-events:none;
+  background:radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,.72) 100%);
+}
+
+/* --- app shell --- */
+#app{
+  position:relative;z-index:2;
+  height:100%;width:100%;max-width:520px;margin:0 auto;
+  display:flex;flex-direction:column;
+  padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);
+}
+
+.screen{display:none;flex:1;flex-direction:column;min-height:0;padding:12px 0 16px}
+.screen.on{display:flex;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* --- typography --- */
+.neon{
+  font-weight:900;letter-spacing:.06em;text-transform:uppercase;line-height:1;
+  color:#fff;
+  text-shadow:0 0 4px var(--c),0 0 14px var(--c),0 0 30px var(--c);
+}
+.mono{font-family:var(--mono)}
+h1{font-size:clamp(30px,10vw,46px)}
+h2{font-size:clamp(19px,5.4vw,25px)}
+.sub{color:var(--dim);font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+
+/* --- buttons --- */
+.btn{
+  --c:var(--cyan);
+  display:block;width:100%;border:0;cursor:pointer;
+  background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.02));
+  border:2px solid var(--c);
+  border-radius:14px;
+  color:#fff;font-family:var(--sans);font-weight:800;
+  font-size:17px;letter-spacing:.08em;text-transform:uppercase;
+  padding:17px 14px;
+  box-shadow:0 5px 0 rgba(0,0,0,.55), 0 0 18px -4px var(--c), inset 0 0 22px -14px var(--c);
+  transition:transform .06s, box-shadow .06s, background .15s;
+}
+.btn:active{transform:translateY(5px);box-shadow:0 0 0 rgba(0,0,0,.5),0 0 22px -6px var(--c)}
+.btn.mag{--c:var(--magenta)}
+.btn.grn{--c:var(--green)}
+.btn.yel{--c:var(--yellow)}
+.btn.red{--c:var(--red)}
+.btn.pur{--c:var(--purple)}
+.btn.ghost{border-color:var(--line);box-shadow:0 4px 0 rgba(0,0,0,.4);font-size:14px;padding:13px}
+.btn small{display:block;font-size:11px;letter-spacing:.06em;opacity:.72;font-weight:600;margin-top:5px;text-transform:none}
+
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.stack{display:flex;flex-direction:column;gap:12px}
+.spacer{flex:1;min-height:8px}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+
+/* --- title screen --- */
+#screen-title{justify-content:center;align-items:center;text-align:center;gap:6px}
+.logo-sub{
+  font-family:var(--mono);color:var(--yellow);font-size:13px;
+  letter-spacing:.3em;text-transform:uppercase;margin-top:14px
+}
+.blink{animation:bl 1.05s steps(2,start) infinite}
+@keyframes bl{50%{opacity:0}}
+.credit{color:var(--dim);font-size:11px;letter-spacing:.1em;margin-top:26px;line-height:1.7}
+
+/* --- top bar --- */
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;min-height:42px}
+.back{
+  border:2px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);
+  border-radius:11px;width:44px;height:44px;font-size:20px;cursor:pointer;flex:none;font-weight:800;
+}
+.back:active{transform:scale(.93)}
+.topbar h2{flex:1;text-align:center}
+.audio-btns{display:flex;gap:6px;flex:none}
+.tgl{
+  border:2px solid var(--line);background:rgba(255,255,255,.04);
+  border-radius:11px;width:44px;height:44px;font-size:16px;cursor:pointer;color:var(--ink)
+}
+.tgl.off{opacity:.34}
+.tgl:active{transform:scale(.93)}
+
+/* --- scroll area --- */
+.scroll{flex:1;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;padding-bottom:18px}
+.scroll::-webkit-scrollbar{width:0}
+
+/* --- stat strip --- */
+.strip{
+  display:flex;gap:8px;margin-bottom:14px;
+}
+.stat{
+  flex:1;background:rgba(255,255,255,.045);border:1px solid var(--line);
+  border-radius:11px;padding:9px 6px;text-align:center
+}
+.stat b{display:block;font-family:var(--mono);font-size:17px;color:var(--yellow)}
+.stat span{font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+
+/* --- lesson cards --- */
+.lcard{
+  display:flex;align-items:center;gap:13px;width:100%;text-align:left;cursor:pointer;
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  border:2px solid var(--c);border-radius:14px;padding:14px;margin-bottom:11px;color:#fff;
+  box-shadow:0 4px 0 rgba(0,0,0,.5), 0 0 16px -6px var(--c);
+  transition:transform .06s
+}
+.lcard:active{transform:translateY(4px)}
+.lcard .ic{
+  flex:none;width:48px;height:48px;border-radius:11px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:22px;font-weight:800;
+  background:rgba(0,0,0,.35);border:1px solid var(--c);color:var(--c);
+  text-shadow:0 0 10px var(--c)
+}
+.lcard .tx{flex:1;min-width:0}
+.lcard .tx b{display:block;font-size:15px;font-weight:800;letter-spacing:.02em}
+.lcard .tx span{display:block;font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.4}
+.lcard .done{flex:none;color:var(--green);font-size:19px;text-shadow:0 0 10px var(--green)}
+
+/* --- lesson viewer --- */
+.slide{
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  border:2px solid var(--c);border-radius:16px;padding:20px 18px;
+  box-shadow:0 0 26px -10px var(--c);
+}
+.slide h3{font-size:19px;font-weight:900;margin-bottom:11px;color:var(--c);text-shadow:0 0 12px var(--c)}
+.slide p{font-size:15px;line-height:1.68;color:#dbe5f7}
+.slide p b{color:var(--yellow)}
+.ex{
+  margin-top:15px;padding:14px;border-radius:11px;
+  background:rgba(0,0,0,.42);border:1px dashed var(--line);
+  font-family:var(--mono);font-size:18px;line-height:1.85;
+  color:var(--green);white-space:pre-line;text-align:center;
+  text-shadow:0 0 12px rgba(56,255,176,.45)
+}
+.dots{display:flex;gap:7px;justify-content:center;margin:16px 0}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.dot.on{background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+
+/* --- game HUD --- */
+.hud{display:flex;gap:8px;margin-bottom:12px}
+.hud .stat b{font-size:16px}
+#combo.hot b{color:var(--magenta);text-shadow:0 0 14px var(--magenta)}
+
+.tbar{height:8px;border-radius:5px;background:rgba(255,255,255,.09);overflow:hidden;margin-bottom:16px}
+.tbar i{
+  display:block;height:100%;width:100%;border-radius:5px;
+  background:linear-gradient(90deg,var(--green),var(--cyan));
+  transform-origin:left;box-shadow:0 0 12px var(--cyan)
+}
+.tbar.warn i{background:linear-gradient(90deg,var(--yellow),var(--red));box-shadow:0 0 12px var(--red)}
+
+.qbox{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:14px 6px;min-height:0
+}
+.qtag{
+  font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);
+  font-weight:800;margin-bottom:14px
+}
+.qtext{
+  font-family:var(--mono);font-weight:700;
+  font-size:clamp(30px,9.5vw,44px);line-height:1.28;
+  color:#fff;text-shadow:0 0 22px rgba(34,245,255,.55);
+  word-break:break-word
+}
+/* long BODMAS / 5-term chains: shrink so they stay on one or two clean lines */
+.qtext.long{font-size:clamp(23px,6.6vw,32px)}
+.qhint{font-size:12px;color:var(--dim);margin-top:12px;font-style:italic}
+
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}
+.opt{
+  border:2px solid var(--line);border-radius:13px;cursor:pointer;
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  color:#fff;font-family:var(--mono);font-weight:700;font-size:21px;
+  padding:19px 8px;min-height:66px;
+  box-shadow:0 4px 0 rgba(0,0,0,.5);
+  transition:transform .06s,border-color .1s,background .1s;
+  display:flex;align-items:center;justify-content:center;word-break:break-word;line-height:1.2
+}
+.opt:active{transform:translateY(4px)}
+.opt.right{border-color:var(--green);background:rgba(56,255,176,.2);box-shadow:0 0 26px -4px var(--green)}
+.opt.wrong{border-color:var(--red);background:rgba(255,77,94,.2);box-shadow:0 0 26px -4px var(--red)}
+.opt.fade{opacity:.32}
+
+/* --- feedback overlay --- */
+#fb{
+  position:fixed;inset:0;z-index:60;display:none;
+  align-items:center;justify-content:center;padding:22px;
+  background:rgba(4,7,20,.93);backdrop-filter:blur(3px)
+}
+#fb.on{display:flex;animation:fade .16s ease}
+.fbcard{
+  width:100%;max-width:420px;text-align:center;
+  border:2px solid var(--c);border-radius:16px;padding:24px 18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+  box-shadow:0 0 40px -12px var(--c)
+}
+.fbcard .big{font-size:38px;margin-bottom:8px}
+.fbcard h3{font-size:21px;font-weight:900;color:var(--c);margin-bottom:6px;text-shadow:0 0 14px var(--c)}
+.fbcard .msg{font-size:13.5px;color:var(--dim);margin-bottom:15px;line-height:1.6}
+.fbcard .work{
+  font-family:var(--mono);font-size:15px;line-height:1.9;color:var(--yellow);
+  background:rgba(0,0,0,.42);border:1px dashed var(--line);border-radius:11px;padding:14px;
+  margin-bottom:18px;white-space:pre-line;word-break:break-word
+}
+
+/* --- floating score --- */
+.pop{
+  position:fixed;z-index:70;pointer-events:none;
+  font-family:var(--mono);font-weight:800;font-size:26px;
+  animation:pop 1s ease-out forwards
+}
+@keyframes pop{
+  0%{opacity:1;transform:translate(-50%,0) scale(.6)}
+  30%{transform:translate(-50%,-24px) scale(1.25)}
+  100%{opacity:0;transform:translate(-50%,-84px) scale(1)}
+}
+.shake{animation:sh .34s}
+@keyframes sh{
+  0%,100%{transform:translate(0)}
+  20%{transform:translate(-9px,3px)}
+  40%{transform:translate(8px,-3px)}
+  60%{transform:translate(-6px,-2px)}
+  80%{transform:translate(5px,2px)}
+}
+
+/* --- countdown --- */
+#cd{
+  position:fixed;inset:0;z-index:80;display:none;
+  align-items:center;justify-content:center;background:rgba(4,7,20,.95)
+}
+#cd.on{display:flex}
+#cd b{
+  font-family:var(--mono);font-size:110px;font-weight:800;color:#fff;
+  text-shadow:0 0 20px var(--cyan),0 0 60px var(--cyan);
+  animation:cdp .82s ease-out
+}
+@keyframes cdp{0%{transform:scale(2.4);opacity:0}30%{transform:scale(1);opacity:1}100%{transform:scale(.82);opacity:.5}}
+
+/* --- results --- */
+.bar{margin-bottom:11px}
+.bar .lb{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:5px;font-weight:700}
+.bar .lb span:last-child{font-family:var(--mono);color:var(--dim)}
+.bar .tr{height:9px;border-radius:5px;background:rgba(255,255,255,.09);overflow:hidden}
+.bar .tr i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--cyan),var(--green));transition:width .7s ease}
+.bar.bad .tr i{background:linear-gradient(90deg,var(--yellow),var(--red))}
+
+.coach{
+  border-left:3px solid var(--yellow);background:rgba(255,225,77,.09);
+  border-radius:0 11px 11px 0;padding:13px 14px;margin:14px 0;
+  font-size:13.5px;line-height:1.65;color:#f2e9c8
+}
+.coach b{color:var(--yellow)}
+
+.bignum{font-family:var(--mono);font-size:46px;font-weight:800;line-height:1}
+.pill{
+  display:inline-block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  font-weight:800;padding:5px 11px;border-radius:99px;margin-top:9px
+}
+
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+.lbl{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:800;margin-bottom:9px}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="vig"></div>
+
+<div id="app">
+
+  <!-- ============ TITLE ============ -->
+  <section class="screen on" id="screen-title">
+    <h1 class="neon" style="--c:var(--cyan)">MATH</h1>
+    <h1 class="neon" style="--c:var(--magenta)">ARCADE</h1>
+    <div class="logo-sub">★ BASE BANAO ★</div>
+    <div style="height:38px"></div>
+    <div class="mono blink" style="color:var(--yellow);font-size:14px;letter-spacing:.16em">▶ TAP TO START</div>
+    <div class="credit">
+      CLASS 10 · FOUNDATION<br>
+      ARITHMETIC → ALGEBRA → BODMAS
+    </div>
+  </section>
+
+  <!-- ============ MENU ============ -->
+  <section class="screen" id="screen-menu">
+    <div class="topbar">
+      <div style="width:44px"></div>
+      <h2 class="neon" style="--c:var(--cyan)">MAIN MENU</h2>
+      <div class="audio-btns">
+        <button class="tgl" id="t-bgm" title="Music">♪</button>
+        <button class="tgl" id="t-sfx" title="Sound">🔊</button>
+      </div>
+    </div>
+
+    <div class="strip">
+      <div class="stat"><b id="m-lessons">0/6</b><span>Learnt</span></div>
+      <div class="stat"><b id="m-best">—</b><span>Best Score</span></div>
+      <div class="stat"><b id="m-time">—</b><span>Best Time</span></div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="stack">
+      <button class="btn" id="go-learn">
+        📖 LEARN
+        <small>Concepts samjho — 6 chhote lessons</small>
+      </button>
+      <button class="btn mag" id="go-play">
+        🎮 PLAY
+        <small>Practice karo — Easy · Medium · Hard</small>
+      </button>
+    </div>
+
+    <div class="spacer"></div>
+    <p style="text-align:center;color:var(--dim);font-size:11.5px;line-height:1.7;font-style:italic">
+      "Padhna to ho gaya. Ab practice.<br>Practice ke bina cheez nahi baithti."
+    </p>
+  </section>
+
+  <!-- ============ LEARN LIST ============ -->
+  <section class="screen" id="screen-learn">
+    <div class="topbar">
+      <button class="back" data-back="menu">←</button>
+      <h2 class="neon" style="--c:var(--cyan)">LEARN</h2>
+      <div style="width:44px"></div>
+    </div>
+    <p class="sub" style="margin-bottom:14px;text-align:center">Ek-ek karke. Jaldi nahi.</p>
+    <div class="scroll" id="lesson-list"></div>
+  </section>
+
+  <!-- ============ LESSON VIEW ============ -->
+  <section class="screen" id="screen-lesson">
+    <div class="topbar">
+      <button class="back" data-back="learn">←</button>
+      <h2 id="ls-title" class="neon" style="--c:var(--cyan);font-size:17px">—</h2>
+      <div style="width:44px"></div>
+    </div>
+    <div class="scroll">
+      <div id="ls-body"></div>
+    </div>
+    <div class="dots" id="ls-dots"></div>
+    <button class="btn grn" id="ls-next">NEXT →</button>
+  </section>
+
+  <!-- ============ DIFFICULTY ============ -->
+  <section class="screen" id="screen-diff">
+    <div class="topbar">
+      <button class="back" data-back="menu">←</button>
+      <h2 class="neon" style="--c:var(--magenta)">PLAY</h2>
+      <div style="width:44px"></div>
+    </div>
+    <p class="sub" style="margin-bottom:16px;text-align:center">20 questions · Time counts</p>
+    <div class="spacer"></div>
+    <div class="stack" id="diff-list"></div>
+    <div class="spacer"></div>
+    <p style="text-align:center;color:var(--dim);font-size:11.5px;line-height:1.7;font-style:italic">
+      Har baar naye questions.<br>Roz khelo — time kam karte jao.
+    </p>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section class="screen" id="screen-game">
+    <div class="hud">
+      <div class="stat"><b id="h-q">1/20</b><span>Question</span></div>
+      <div class="stat"><b id="h-score">0</b><span>Score</span></div>
+      <div class="stat" id="combo"><b id="h-combo">×1</b><span>Combo</span></div>
+      <div class="stat"><b id="h-clock">0.0</b><span>Time</span></div>
+    </div>
+    <div class="tbar" id="tbar"><i id="tfill"></i></div>
+
+    <div class="qbox">
+      <div class="qtag" id="q-tag">SIGN RULES</div>
+      <div class="qtext mono" id="q-text">—</div>
+      <div class="qhint" id="q-hint"></div>
+    </div>
+
+    <div class="opts" id="opts"></div>
+  </section>
+
+  <!-- ============ RESULT ============ -->
+  <section class="screen" id="screen-result">
+    <div class="topbar">
+      <div style="width:44px"></div>
+      <h2 class="neon" style="--c:var(--yellow)">REPORT CARD</h2>
+      <div style="width:44px"></div>
+    </div>
+    <div class="scroll">
+      <div class="center" style="margin-bottom:6px">
+        <div class="bignum" id="r-score" style="color:var(--yellow);text-shadow:0 0 24px var(--yellow)">0</div>
+        <div class="sub" style="margin-top:6px">Score</div>
+        <div class="pill" id="r-pill">—</div>
+      </div>
+
+      <div class="strip" style="margin-top:16px">
+        <div class="stat"><b id="r-acc">0%</b><span>Accuracy</span></div>
+        <div class="stat"><b id="r-time">0s</b><span>Your Time</span></div>
+        <div class="stat"><b id="r-target">0s</b><span>Target</span></div>
+      </div>
+
+      <div class="coach" id="r-coach"></div>
+
+      <hr>
+      <div class="lbl">Topic-wise — kahan galti hui</div>
+      <div id="r-bars"></div>
+
+      <div id="r-weak-wrap" style="display:none">
+        <hr>
+        <button class="btn yel" id="r-weak">📖 LEARN THIS TOPIC</button>
+      </div>
+    </div>
+
+    <div class="stack" style="margin-top:12px">
+      <div class="row">
+        <button class="btn grn" id="r-again">↻ AGAIN</button>
+        <button class="btn ghost" id="r-menu">MENU</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- feedback overlay -->
+<div id="fb"><div class="fbcard" id="fbcard">
+  <div class="big" id="fb-emoji">✓</div>
+  <h3 id="fb-title">SAHI!</h3>
+  <div class="msg" id="fb-msg"></div>
+  <div class="work" id="fb-work"></div>
+  <button class="btn grn" id="fb-next">SAMAJH GAYA →</button>
+</div></div>
+
+<!-- countdown -->
+<div id="cd"><b id="cd-n">3</b></div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   0. UTILITIES
+   ============================================================ */
+const $  = id => document.getElementById(id);
+const R  = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const coin = () => Math.random() < 0.5;
+const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j=R(0,i); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+const MINUS='−', TIMES='×', DIVS='÷', SQ='²';
+
+/* display a signed number as a leading term:  -2 -> "−2" */
+const sgn = n => n<0 ? MINUS+Math.abs(n) : String(n);
+/* display a signed number as a following term: -2 -> " − 2" */
+const term = n => n<0 ? ' '+MINUS+' '+Math.abs(n) : ' + '+n;
+/* coefficient + variable, written the way a human writes it: 1x -> x, -1x -> −x */
+const cf = (n, v) => n===1 ? v : n===-1 ? MINUS+v : sgn(n)+v;
+
+/* ------------------------------------------------------------
+   String-based decimal shift. NEVER use float division here —
+   0.03/100 in JS gives 0.00030000000000000003.
+   places > 0 shifts LEFT (divide), places < 0 shifts RIGHT.
+   ------------------------------------------------------------ */
+function shiftLeft(numStr, places){
+  numStr = String(numStr);
+  const neg = numStr[0]==='-';
+  if(neg) numStr = numStr.slice(1);
+  let [ip, fp=''] = numStr.split('.');
+  let digits = ip + fp;
+  let point = ip.length - places;
+  let res;
+  if(point <= 0)            res = '0.' + '0'.repeat(-point) + digits;
+  else if(point >= digits.length) res = digits + '0'.repeat(point - digits.length);
+  else                      res = digits.slice(0,point) + '.' + digits.slice(point);
+  if(res.includes('.')) res = res.replace(/0+$/,'').replace(/\.$/,'');
+  res = res.replace(/^0+(?=\d)/,'');
+  if(res[0]==='.') res = '0'+res;
+  if(res==='' ) res='0';
+  return (neg && res!=='0' ? '-' : '') + res;
+}
+
+/* ============================================================
+   1. AUDIO ENGINE  (Web Audio — no files, works offline)
+   ============================================================ */
+const Audio_ = {
+  ctx:null, master:null, mus:null, sfx:null, noise:null,
+  bgmOn:true, sfxOn:true, playing:false, timer:null,
+  next:0, step:0,
+
+  init(){
+    if(this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain(); this.master.gain.value = 0.85;
+    this.master.connect(this.ctx.destination);
+    this.mus = this.ctx.createGain(); this.mus.gain.value = this.bgmOn ? 0.16 : 0;
+    this.sfx = this.ctx.createGain(); this.sfx.gain.value = this.sfxOn ? 0.5 : 0;
+    this.mus.connect(this.master); this.sfx.connect(this.master);
+
+    // one-shot noise buffer for hats
+    const len = this.ctx.sampleRate * 0.2;
+    this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const d = this.noise.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = Math.random()*2-1;
+  },
+
+  resume(){ if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+
+  /* generic tone */
+  tone(freq, at, dur, type, vol, dest, slideTo){
+    if(!this.ctx) return;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type || 'square';
+    o.frequency.setValueAtTime(freq, at);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(20,slideTo), at+dur);
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(vol, at+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, at+dur);
+    o.connect(g); g.connect(dest || this.sfx);
+    o.start(at); o.stop(at+dur+0.02);
+  },
+
+  hat(at, vol){
+    if(!this.ctx) return;
+    const s = this.ctx.createBufferSource(); s.buffer = this.noise;
+    const g = this.ctx.createGain();
+    const f = this.ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=7000;
+    g.gain.setValueAtTime(vol, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at+0.045);
+    s.connect(f); f.connect(g); g.connect(this.mus);
+    s.start(at); s.stop(at+0.06);
+  },
+
+  /* ---- SFX ---- */
+  play(name){
+    if(!this.ctx || !this.sfxOn) return;
+    this.resume();
+    const t = this.ctx.currentTime, T = (f,d,ty,v,at,sl)=>this.tone(f,t+(at||0),d,ty,v,this.sfx,sl);
+    switch(name){
+      case 'click':  T(660, .05,'square',.28); break;
+      case 'move':   T(880, .04,'triangle',.2); break;
+      case 'right':  T(523.25,.09,'square',.3,0);
+                     T(659.25,.09,'square',.3,.07);
+                     T(1046.5,.20,'square',.3,.14); break;
+      case 'wrong':  T(200,.30,'sawtooth',.25,0,80);
+                     T(146,.30,'square',.18,.02,70); break;
+      case 'combo':  T(1046.5,.06,'square',.24,0);
+                     T(1318.5,.06,'square',.24,.05);
+                     T(1567.9,.14,'square',.24,.10); break;
+      case 'tick':   T(1400,.03,'square',.16); break;
+      case 'start':  [261.6,329.6,392,523.25,659.25].forEach((f,i)=>T(f,.10,'square',.26,i*.07)); break;
+      case 'over':   [659.25,523.25,392,261.6].forEach((f,i)=>T(f,.24,'triangle',.3,i*.15)); break;
+      case 'level':  [523.25,659.25,783.99,1046.5,1318.5].forEach((f,i)=>T(f,.14,'square',.28,i*.09)); break;
+      case 'cd':     T(880,.10,'square',.3); break;
+      case 'go':     T(1318.5,.28,'square',.34); break;
+    }
+  },
+
+  /* ---- BGM: 4-bar chiptune loop, Am - F - C - G ---- */
+  CH: [
+    { bass:110.00, arp:[440.00, 523.25, 659.25] }, // Am
+    { bass: 87.31, arp:[349.23, 440.00, 523.25] }, // F
+    { bass:130.81, arp:[523.25, 659.25, 783.99] }, // C
+    { bass: 98.00, arp:[392.00, 493.88, 587.33] }, // G
+  ],
+
+  startBGM(){
+    if(!this.ctx || this.playing) return;
+    this.resume();
+    this.playing = true;
+    this.next = this.ctx.currentTime + 0.06;
+    this.step = 0;
+    this.timer = setInterval(()=>this._sched(), 25);
+  },
+  stopBGM(){
+    this.playing = false;
+    if(this.timer){ clearInterval(this.timer); this.timer=null; }
+  },
+  _sched(){
+    if(!this.ctx) return;
+    const SIX = 0.125;                       // 16th @ 120bpm
+    while(this.next < this.ctx.currentTime + 0.12){
+      const s = this.step, bar = (s>>4) & 3, c = this.CH[bar], t = this.next;
+
+      if(s % 4 === 0) this.tone(c.bass, t, 0.22, 'square', 0.42, this.mus);      // bass
+      if(s % 8 === 0) this.tone(70, t, 0.13, 'sine', 0.62, this.mus, 34);        // kick
+      if(s % 2 === 1) this.hat(t, 0.05);                                          // hat
+      if(s % 2 === 0) this.tone(c.arp[(s>>1) % 3], t, 0.075, 'square', 0.11, this.mus); // arp
+
+      this.next += SIX;
+      this.step = (this.step + 1) % 64;
+    }
+  },
+
+  setBGM(on){ this.bgmOn=on; if(this.mus) this.mus.gain.value = on?0.16:0; },
+  setSFX(on){ this.sfxOn=on; if(this.sfx) this.sfx.gain.value = on?0.5:0; },
+};
+
+/* ============================================================
+   2. STORAGE
+   ============================================================ */
+const KEY = 'mathArcade.v1';
+const Store = {
+  d:{ lessons:{}, best:{}, bestTime:{}, bgm:true, sfx:true },
+  load(){ try{ const r = localStorage.getItem(KEY); if(r) Object.assign(this.d, JSON.parse(r)); }catch(e){} },
+  save(){ try{ localStorage.setItem(KEY, JSON.stringify(this.d)); }catch(e){} },
+};
+Store.load();
+
+/* ============================================================
+   3. QUESTION GENERATORS
+   Every question is generated fresh — "alag alag aata hai har bar".
+   Distractors are the REAL mistakes seen in class, not random noise.
+   ============================================================ */
+
+const TOPICS = {
+  signs : { name:'Sign Rules',    lesson:'signs'  },
+  chain : { name:'Step-by-Step',  lesson:'chain'  },
+  like  : { name:'Like Terms',    lesson:'like'   },
+  square: { name:'Squares',       lesson:'square' },
+  dec   : { name:'Decimals',      lesson:'dec'    },
+  bodmas: { name:'BODMAS',        lesson:'bodmas' },
+  algmul: { name:'Algebra ' + TIMES, lesson:'like' },
+};
+
+/* build 4 options; correct + 3 distinct wrongs */
+function mkOpts(correct, wrongs){
+  correct = String(correct);
+  const seen = new Set([correct]);
+  const out = [];
+  for(const w of wrongs){
+    const s = String(w);
+    if(!seen.has(s) && s !== 'NaN' && s !== 'undefined'){ seen.add(s); out.push(s); }
+    if(out.length === 3) break;
+  }
+  // numeric fallback jitter, only if the answer is a plain number
+  let g = 1;
+  const num = Number(correct.replace(MINUS,'-'));
+  while(out.length < 3 && isFinite(num)){
+    const cand = sgn(num + (g%2 ? g : -g));
+    if(!seen.has(cand)){ seen.add(cand); out.push(cand); }
+    g++; if(g > 40) break;
+  }
+  while(out.length < 3) out.push('—' + out.length);   // never happens; safety
+  return shuffle([{label:correct, ok:true}, ...out.map(l=>({label:l, ok:false}))]);
+}
+
+/* ---------- SIGN RULES: two signed terms ---------- */
+function genSigns(diff){
+  const max = diff==='easy' ? 9 : diff==='medium' ? 20 : 60;
+  let a = R(1,max) * (coin()?1:-1);
+  let b = R(1,max) * (coin()?1:-1);
+  if(a + b === 0) b += (b>0 ? 1 : -1);
+
+  const ans  = a + b;
+  const A = Math.abs(a), B = Math.abs(b);
+  const same = (a>0) === (b>0);
+
+  const why = same
+    ? 'Dono sign SAME hain → numbers ko jodo:\n' + A + ' + ' + B + ' = ' + (A+B) +
+      '\nSign wahi rehta hai → ' + sgn(ans)
+    : 'Sign OPPOSITE hain → bade se chhote ko minus karo:\n' + Math.max(A,B) + ' ' + MINUS + ' ' + Math.min(A,B) + ' = ' + Math.abs(ans) +
+      '\nBada number ' + (A>B ? sgn(a) : sgn(b)) + ' hai, uska sign lagao → ' + sgn(ans);
+
+  return {
+    topic:'signs',
+    q: sgn(a) + term(b),
+    hint: same ? 'Dono sign same hain?' : 'Bade number ka sign kaunsa hai?',
+    opts: mkOpts(sgn(ans), [
+      sgn(-ans),                                   // took the smaller number's sign
+      sgn(A + B),                                  // always added magnitudes, positive
+      sgn(-(A + B)),                               // always added, negative
+      sgn(Math.abs(A - B)),                        // always subtracted, positive
+    ]),
+    why
+  };
+}
+
+/* ---------- CHAIN: 3–5 terms, step by step ---------- */
+function genChain(diff){
+  const n   = diff==='easy' ? 3 : diff==='medium' ? 4 : 5;
+  const max = diff==='hard' ? 25 : 12;
+  const t = Array.from({length:n}, () => R(1,max) * (coin()?1:-1));
+
+  const ans = t.reduce((s,x)=>s+x, 0);
+  const q   = t.map((x,i)=> i===0 ? sgn(x) : term(x)).join('');
+
+  // step-by-step working — exactly how it's taught
+  let run = t[0]; const steps = [];
+  for(let i=1;i<n;i++){
+    const nx = run + t[i];
+    steps.push(sgn(run) + term(t[i]) + '  =  ' + sgn(nx));
+    run = nx;
+  }
+
+  // distractor: slipped on one sign
+  const flip = t.slice(); const fi = R(1,n-1); flip[fi] = -flip[fi];
+  const slipped = flip.reduce((s,x)=>s+x,0);
+
+  return {
+    topic:'chain',
+    q,
+    hint:'Ek saath mat solve karo. Do-do karke.',
+    opts: mkOpts(sgn(ans), [
+      sgn(slipped),
+      sgn(-ans),
+      sgn(t.reduce((s,x)=>s+Math.abs(x),0)),
+      sgn(ans + R(1,3)),
+    ]),
+    why: 'Step by step:\n' + steps.join('\n')
+  };
+}
+
+/* ---------- LIKE TERMS: the banana / apple rule ---------- */
+function genLike(diff){
+  const forms = diff==='easy' ? [1,3] : diff==='medium' ? [1,2,3,4,5] : [1,2,3,4,5,6];
+  const f = pick(forms);
+  const a = R(2,9), b = R(2,9);
+
+  switch(f){
+    case 1: { // 5x + x  =  6x
+      return { topic:'like', q: a+'x + x', hint:a+' banana + 1 banana = ?',
+        opts: mkOpts((a+1)+'x', [ String(a+1), String(a), (a+1)+'x'+SQ, a+'x'+SQ ]),
+        why: a + ' banana + 1 banana = ' + (a+1) + ' banana.\n' +
+             'Banana gaayab nahi hota → ' + (a+1) + 'x\n\nDhyan do: answer ' + (a+1) + ' NAHI hai. x lagana hai.' };
+    }
+    case 2: { // −5x − x  =  −6x
+      return { topic:'like', q: MINUS+a+'x '+MINUS+' x', hint:'Dono sign same hain.',
+        opts: mkOpts(cf(-(a+1),'x'), [ cf(-(a-1),'x'), cf(a+1,'x'), MINUS+(a+1), cf(-(a+1),'x'+SQ) ]),
+        why: 'Dono x ke term hain → operate ho sakte hain.\nDono sign minus (same) → jodo: ' + a + ' + 1 = ' + (a+1) +
+             '\nBade ke samne minus → ' + MINUS + (a+1) + 'x' };
+    }
+    case 3: { // 6x + 1  →  can't combine
+      return { topic:'like', q: a+'x + '+b, hint:'Kya inko jod sakte ho?',
+        opts: mkOpts(a+'x + '+b, [ (a+b)+'x', String(a+b), (a*b)+'x', (a+b)+'x'+SQ ]),
+        why: a + ' banana + ' + b + ' apple = ?\nAlag-alag cheez hai — jod nahi sakte.\n' +
+             'Jaise ka waise rehta hai → ' + a + 'x + ' + b };
+    }
+    case 4: { // 3x + 2y  →  can't combine
+      return { topic:'like', q: a+'x + '+b+'y', hint:'x aur y — same cheez hain kya?',
+        opts: mkOpts(a+'x + '+b+'y', [ (a+b)+'xy', (a+b)+'x', (a+b)+'y', (a*b)+'xy' ]),
+        why: 'x aur y alag cheezein hain (banana aur apple).\nCounting alag-alag hogi → ' + a + 'x + ' + b + 'y' };
+    }
+    case 5: { // 7x − 3x
+      const [p,q2] = a>b ? [a,b] : [b+1,a];
+      const r = p - q2;
+      return { topic:'like', q: cf(p,'x')+' '+MINUS+' '+cf(q2,'x'), hint:'Dono x ke term hain.',
+        opts: mkOpts(cf(r,'x'), [ String(r), cf(p+q2,'x'), cf(r,'x'+SQ), String(p+q2) ]),
+        why: 'Dono x ke term → operate kar sakte hain.\nSign opposite → bade se chhota: ' + p + ' ' + MINUS + ' ' + q2 + ' = ' + r +
+             '\nBade ka sign plus → ' + cf(r,'x') };
+    }
+    default: { // x² + x²   vs   x + x²
+      if(coin()){
+        return { topic:'like', q: a+'x'+SQ+' + '+b+'x'+SQ, hint:'Dono x'+SQ+' ke term hain.',
+          opts: mkOpts((a+b)+'x'+SQ, [ (a+b)+'x', String(a+b), (a+b)+'x⁴', (a*b)+'x'+SQ ]),
+          why: 'Dono x' + SQ + ' ke term hain → jod sakte hain.\n' + a + ' + ' + b + ' = ' + (a+b) + ' → ' + (a+b) + 'x' + SQ +
+               '\n\nPower nahi badalti — sirf counting badalti hai.' };
+      }
+      return { topic:'like', q: a+'x + '+b+'x'+SQ, hint:'x aur x'+SQ+' same hain kya?',
+        opts: mkOpts(a+'x + '+b+'x'+SQ, [ (a+b)+'x'+SQ, (a+b)+'x', (a+b)+'x³', String(a+b) ]),
+        why: 'x aur x' + SQ + ' alag cheezein hain.\nJod nahi sakte → ' + a + 'x + ' + b + 'x' + SQ };
+    }
+  }
+}
+
+/* ---------- SQUARES & CUBES + the ×5 trick ---------- */
+function genSquare(diff){
+  if(diff === 'easy'){
+    if(coin()){
+      const n = R(2,13);
+      return { topic:'square', q: n+SQ, hint:n+' '+TIMES+' '+n,
+        opts: mkOpts(n*n, [ n*2, n*n+n, (n+1)*(n+1), n*n-n ]),
+        why: n + SQ + ' ka matlab ' + n + ' ' + TIMES + ' ' + n + ' = ' + (n*n) +
+             '\n\nDhyan: ' + n + SQ + ' ka matlab ' + n + ' ' + TIMES + ' 2 NAHI hota.' };
+    }
+    const n = R(2,6);
+    return { topic:'square', q: n+'³', hint:n+' '+TIMES+' '+n+' '+TIMES+' '+n,
+      opts: mkOpts(n**3, [ n*3, n*n, n**3 + n, n*n*2 ]),
+      why: n + '³ = ' + n + ' ' + TIMES + ' ' + n + ' ' + TIMES + ' ' + n + ' = ' + (n**3) +
+           '\n\nDhyan: ' + n + '³ ka matlab ' + n + ' ' + TIMES + ' 3 = ' + (n*3) + ' NAHI hota.' };
+  }
+  // the ×5 trick: (10k+5)² = k(k+1) then "25"
+  const k   = diff==='medium' ? R(1,6) : R(1,9);
+  const num = 10*k + 5;
+  const front = k * (k+1);
+  const ans = front*100 + 25;
+  return { topic:'square', q: num+SQ, hint:'Number 5 pe khatam → trick lagao',
+    opts: mkOpts(ans, [ k*k*100+25, front*10+5, num*2, ans+100 ]),
+    why: num + ' ka end 5 se hai → trick:\n1) Aage wala number: ' + k +
+         '\n2) Usse agle se multiply: ' + k + ' ' + TIMES + ' ' + (k+1) + ' = ' + front +
+         '\n3) Peeche 25 lagao → ' + ans };
+}
+
+/* ---------- DECIMALS: divide by 10 / 100 / 1000 + paisa ---------- */
+function genDec(diff){
+  const mode = diff==='medium' ? pick(['div10','div100','money'])
+                               : pick(['div100','div1000','money','sub']);
+  if(mode === 'money'){
+    const paise = pick([5,25,20,50,10]);
+    const n = pick([2,3,4,5,8,20]);
+    const c = shiftLeft(String(paise), 2);            // 0.05
+    const ans = shiftLeft(String(n * paise), 2);      // exact, no float
+    return { topic:'dec', q: n+' '+TIMES+' '+c, hint:'Paise ke roop mein socho',
+      opts: mkOpts(ans, [ shiftLeft(String(n*paise),1), shiftLeft(String(n*paise),3), String(n*paise), shiftLeft(String(n+paise),2) ]),
+      why: c + ' matlab ' + paise + ' paise.\n' + paise + ' paise ' + TIMES + ' ' + n + ' = ' + (n*paise) + ' paise' +
+           '\n100 paise = ₹1  →  ' + (n*paise) + ' paise = ' + ans };
+  }
+  if(mode === 'sub'){
+    const u = R(1,8);                       // units digit of a
+    const a = R(1,8)*10 + u;                // 11..88
+    const b = R(u+1, 9);                    // b > u  =>  a borrow is required
+    const A = shiftLeft(String(a),2), B = shiftLeft(String(b),2);
+    const ans = shiftLeft(String(a-b),2);
+    // the classic error: subtract each column "bade se chhote", skipping the borrow
+    const colErr = Math.floor(a/10)*10 + (b - u);
+    return { topic:'dec', q: A+' '+MINUS+' '+B, hint:'Dono ko paise maano',
+      opts: mkOpts(ans, [ shiftLeft(String(colErr),2), shiftLeft(String(a+b),2), String(a-b), shiftLeft(String(a-b),1) ]),
+      why: A + ' = ' + a + ' paise,  ' + B + ' = ' + b + ' paise\n' + a + ' ' + MINUS + ' ' + b + ' = ' + (a-b) + ' paise' +
+           '\n→ ' + ans };
+  }
+  const places = mode==='div10' ? 1 : mode==='div100' ? 2 : 3;
+  const by = Math.pow(10, places);
+  // ÷1000 stays on whole numbers (33 ÷ 1000), else the answer drowns in zeros
+  const src = places === 3
+    ? String(R(11,99))
+    : pick([ String(R(11,99)), shiftLeft(String(R(11,99)),2), String(R(2,9)), shiftLeft(String(R(2,9)),2) ]);
+  const ans = shiftLeft(src, places);
+  return { topic:'dec', q: src+' '+DIVS+' '+by, hint:'Decimal kis taraf khiskega?',
+    opts: mkOpts(ans, [ shiftLeft(src,-places), shiftLeft(src, places+1), shiftLeft(src, places-1), src ]),
+    why: by + ' se divide → decimal ko ' + places + ' place LEFT khiskao.\n' +
+         src + '  →  ' + ans + '\n\nJitne zero, utne place. Left mein.' };
+}
+
+/* ---------- BODMAS ---------- */
+function genBodmas(diff){
+  const a=R(2,9), b=R(2,9), c=R(2,9), e=R(2,5), m=R(2,5);
+  const form = diff==='medium' ? pick([1,2,3]) : pick([1,2,3,4,5]);
+
+  if(form === 1){                                        // a + b × c
+    const ans = a + b*c, lr = (a+b)*c;
+    return { topic:'bodmas', q: a+' + '+b+' '+TIMES+' '+c, hint:'Pehle kaunsa? '+TIMES+' ya +',
+      opts: mkOpts(ans, [ lr, a*b+c, a+b+c, ans+c ]),
+      why: 'BODMAS → pehle ' + TIMES + ':\n' + b + ' ' + TIMES + ' ' + c + ' = ' + (b*c) +
+           '\nPhir +:  ' + a + ' + ' + (b*c) + ' = ' + ans +
+           '\n\nLeft-to-right karoge to ' + lr + ' aayega — galat.' };
+  }
+  if(form === 2){                                        // a × b − c
+    const ans = a*b - c, lr = a*(b-c);
+    return { topic:'bodmas', q: a+' '+TIMES+' '+b+' '+MINUS+' '+c, hint:TIMES+' pehle, phir '+MINUS,
+      opts: mkOpts(sgn(ans), [ sgn(lr), sgn(a*b+c), sgn(a-b*c), sgn(ans+1) ]),
+      why: 'BODMAS → pehle ' + TIMES + ':\n' + a + ' ' + TIMES + ' ' + b + ' = ' + (a*b) +
+           '\nPhir ' + MINUS + ':  ' + (a*b) + ' ' + MINUS + ' ' + c + ' = ' + ans };
+  }
+  if(form === 3){                                        // (a + b) × c
+    const ans = (a+b)*c, wrong = a + b*c;
+    return { topic:'bodmas', q: '('+a+' + '+b+') '+TIMES+' '+c, hint:'Bracket sabse pehle',
+      opts: mkOpts(ans, [ wrong, a*c+b, (a+b)+c, ans+c ]),
+      why: 'B sabse pehle → bracket:\n' + a + ' + ' + b + ' = ' + (a+b) +
+           '\nPhir ' + TIMES + ':  ' + (a+b) + ' ' + TIMES + ' ' + c + ' = ' + ans };
+  }
+  if(form === 4){                                        // a ÷ b + c   (exact)
+    const q0 = R(2,9), a2 = q0*e;
+    const ans = q0 + c, lr = (a2 + c) / e;
+    return { topic:'bodmas', q: a2+' '+DIVS+' '+e+' + '+c, hint:DIVS+' pehle, phir +',
+      opts: mkOpts(ans, [ Math.round(lr), a2/e*c, q0*c, ans+1 ]),
+      why: 'BODMAS → pehle ' + DIVS + ':\n' + a2 + ' ' + DIVS + ' ' + e + ' = ' + q0 +
+           '\nPhir +:  ' + q0 + ' + ' + c + ' = ' + ans };
+  }
+  // form 5 (hard): (a + b) × c − d ÷ e
+  const d = m*e;
+  const ans = (a+b)*c - m;
+  return { topic:'bodmas', q:'('+a+' + '+b+') '+TIMES+' '+c+' '+MINUS+' '+d+' '+DIVS+' '+e,
+    hint:'B → D → M → S',
+    opts: mkOpts(sgn(ans), [ sgn(Math.round(((a+b)*c - d)/e)), sgn((a+b)*c - d*e), sgn(a + b*c - m), sgn(ans+e) ]),
+    why: '1) Bracket: ' + a + ' + ' + b + ' = ' + (a+b) +
+         '\n2) Divide: ' + d + ' ' + DIVS + ' ' + e + ' = ' + m +
+         '\n3) Multiply: ' + (a+b) + ' ' + TIMES + ' ' + c + ' = ' + ((a+b)*c) +
+         '\n4) Subtract: ' + ((a+b)*c) + ' ' + MINUS + ' ' + m + ' = ' + ans };
+}
+
+/* ---------- ALGEBRA MULTIPLICATION ---------- */
+function genAlgMul(){
+  const a=R(2,6), b=R(2,6);
+  const v = R(1,3);
+  if(v === 1){    // 2x × 3y = 6xy
+    return { topic:'algmul', q: a+'x '+TIMES+' '+b+'y', hint:'Number '+TIMES+' number, letter '+TIMES+' letter',
+      opts: mkOpts((a*b)+'xy', [ (a+b)+'xy', (a*b)+'xy'+SQ, (a*b)+'x', (a*b)+'y' ]),
+      why: 'Numbers: ' + a + ' ' + TIMES + ' ' + b + ' = ' + (a*b) +
+           '\nLetters: x ' + TIMES + ' y = xy\n→ ' + (a*b) + 'xy' +
+           '\n\nEk x aur ek y hai — square nahi aayega.' };
+  }
+  if(v === 2){    // 2x × 3x = 6x²
+    return { topic:'algmul', q: a+'x '+TIMES+' '+b+'x', hint:'x '+TIMES+' x = ?',
+      opts: mkOpts((a*b)+'x'+SQ, [ (a*b)+'x', (a+b)+'x'+SQ, (a*b)+'x³', String(a*b) ]),
+      why: 'Numbers: ' + a + ' ' + TIMES + ' ' + b + ' = ' + (a*b) +
+           '\nLetters: x ' + TIMES + ' x = x' + SQ + '\n→ ' + (a*b) + 'x' + SQ };
+  }
+  // 2x × 2yx = 4x²y
+  return { topic:'algmul', q: a+'x '+TIMES+' '+b+'yx', hint:'Kitne x hain? Kitne y?',
+    opts: mkOpts((a*b)+'x'+SQ+'y', [ (a*b)+'xy', (a*b)+'xy'+SQ, (a+b)+'x'+SQ+'y', (a*b)+'x'+SQ ]),
+    why: 'Numbers: ' + a + ' ' + TIMES + ' ' + b + ' = ' + (a*b) +
+         '\nLetters: x ' + TIMES + ' yx = x' + SQ + 'y\n→ ' + (a*b) + 'x' + SQ + 'y' };
+}
+
+/* ---------- topic pools per difficulty ---------- */
+const POOL = {
+  easy  : ['signs','signs','signs','like','like','square','square','chain'],
+  medium: ['signs','chain','chain','like','like','square','dec','dec','bodmas'],
+  hard  : ['chain','bodmas','bodmas','dec','dec','algmul','algmul','like','square'],
+};
+
+function genQuestion(topic, diff){
+  switch(topic){
+    case 'signs' : return genSigns(diff);
+    case 'chain' : return genChain(diff);
+    case 'like'  : return genLike(diff);
+    case 'square': return genSquare(diff);
+    case 'dec'   : return genDec(diff);
+    case 'bodmas': return genBodmas(diff);
+    case 'algmul': return genAlgMul(diff);
+  }
+}
+
+/* ============================================================
+   4. LESSON CONTENT  (teacher's own analogies, Hinglish)
+   ============================================================ */
+const LESSONS = [
+  {
+    id:'signs', icon:'±', color:'var(--cyan)',
+    title:'Sign Ka Rule',
+    blurb:'Same sign? Opposite sign? Kya karna hai.',
+    checkTopic:'signs', checkDiff:'easy',
+    cards:[
+      { h:'Bina sign ka number',
+        b:'Agar kisi number ke aage koi sign nahi likha hai, to woh <b>plus</b> hota hai. Hamesha.',
+        ex:'3   =   +3\n7   =   +7' },
+      { h:'Rule 1 — Dono sign SAME',
+        b:'Dono numbers ke aage same sign? To numbers ko <b>jodo</b> (add), aur <b>wahi sign</b> laga do.',
+        ex:'+3 + 2  =  +5\n−3 − 2  =  −5' },
+      { h:'Rule 2 — Sign OPPOSITE',
+        b:'Ek plus, ek minus? To <b>bade se chhote ko minus</b> karo. Answer ke aage <b>bade number ka sign</b> lagao.',
+        ex:'−2 + 3  =  +1\n+2 − 3  =  −1' },
+      { h:'Chair wali baat 🪑',
+        b:'2 chair mein se 7 chair hata sakte ho? Nahi. Isliye <b>hamesha bade se chhote</b> ko minus karte hain — aur sign bade wale ka lagta hai.',
+        ex:'−7 + 2  =  −5\n↳ 7 − 2 = 5, aur 7 ke aage minus tha' },
+      { h:'Minus × Minus',
+        b:'Dono sign minus? <b>Same sign</b> hai. Matlab jodo, aur minus lagao. Yeh sabse zyada galti wali jagah hai.',
+        ex:'−5 − 5  =  −10\n−9 − 3  =  −12' },
+    ]
+  },
+  {
+    id:'chain', icon:'→', color:'var(--green)',
+    title:'Step By Step Socho',
+    blurb:'Lambe questions ko tod-tod ke solve karo.',
+    checkTopic:'chain', checkDiff:'easy',
+    cards:[
+      { h:'Ek saath mat solve karo',
+        b:'Jab 3-4 numbers ek saath aa jayein, to poora ek jhatke mein solve karne ki koshish mat karo. <b>Do-do</b> karke chalo.',
+        ex:'−5 − 5 + 6\n↳ −5 − 5 = −10\n↳ −10 + 6 = −4' },
+      { h:'AI bhi aise hi sochta hai',
+        b:'ChatGPT ya Claude mein "thinking mode" dekha hai? Woh step-by-step sochta hai, tabhi clean answer aata hai. Duniya ka har samajhdar banda <b>order mein</b> sochta hai. Clutter nahi hota.',
+        ex:'4 − 7 + 3 + 2\n↳ 4 − 7 = −3\n↳ −3 + 3 = 0\n↳ 0 + 2 = 2' },
+      { h:'Bol bol ke karo 🗣️',
+        b:'Japan mein train drivers har kaam <b>bol ke</b> karte hain — "main yeh button daba raha hoon". Bolne se brain ko signal jaata hai ki yeh kaam important hai. Galti ke chances gir jaate hain.',
+        ex:'"Minus paanch... minus paanch...\n barabar minus dus."' },
+      { h:'Galti = seekhna',
+        b:'Yeh <b>silly mistake nahi hai</b>. Yeh genuine mistake hai, aur iska proper solution hota hai. Paanch baar sahi banaoge, chhathi baar galti karoge. Phir karte-karte galti karna chhod doge. Aise hi seekha jaata hai.',
+        ex:'Galti → samajh → dobara → pakka' },
+    ]
+  },
+  {
+    id:'like', icon:'x', color:'var(--magenta)',
+    title:'Banana Aur Apple',
+    blurb:'Like terms — kya jud sakta hai, kya nahi.',
+    checkTopic:'like', checkDiff:'medium',
+    cards:[
+      { h:'x ko banana maan lo',
+        b:'5 banana + 1 banana = 6 banana. Bas. Isi tarah <b>5x + x = 6x</b>. Banana kahin gaya nahi.',
+        ex:'5x + x  =  6x' },
+      { h:'Sabse badi galti',
+        b:'5x + x ka answer <b>6 nahi</b> hota. Aur <b>6x² bhi nahi</b>. Sirf counting badalti hai — banana wahi rehta hai.',
+        ex:'5x + x  =  6x   ✓\n5x + x  =  6    ✗\n5x + x  =  6x²  ✗' },
+      { h:'Banana + Apple = ?',
+        b:'6 banana aur 1 apple ko jod sakte ho? Nahi. Aap bologe "6 banana aur 1 apple". Bas waise hi <b>6x + 1</b> jaisa ka waisa rehta hai.',
+        ex:'6x + 1  =  6x + 1\n3x + 2y  =  3x + 2y' },
+      { h:'Minus wale like terms',
+        b:'Pehle dekho — dono same cheez ke term hain? Haan? To sign ka rule lagao.',
+        ex:'−5x − x\n↳ dono x ke term ✓\n↳ dono sign same → 5 + 1 = 6\n↳ bade ke aage minus → −6x' },
+      { h:'Multiply karte waqt',
+        b:'Number ko number se, letter ko letter se. <b>2x × 3y = 6xy</b>. Ek x aur ek y hai — square kahan se aayega?',
+        ex:'2x × 3y  =  6xy\n2x × 3x  =  6x²\n2x × 2yx =  4x²y' },
+    ]
+  },
+  {
+    id:'square', icon:'n²', color:'var(--yellow)',
+    title:'Square Aur Magic Trick',
+    blurb:'n², n³ aur 5 se khatam hone wala trick.',
+    checkTopic:'square', checkDiff:'medium',
+    cards:[
+      { h:'Square ka matlab',
+        b:'n² matlab <b>n × n</b>. n × 2 nahi. Yeh confusion bahut hoti hai.',
+        ex:'5² = 5 × 5 = 25\n12² = 12 × 12 = 144' },
+      { h:'Cube ka matlab',
+        b:'n³ matlab <b>n × n × n</b>. n × 3 nahi.',
+        ex:'2³ = 2 × 2 × 2 = 8\n↳ 2 × 3 = 6  ✗ galat' },
+      { h:'⭐ 5 wala magic trick',
+        b:'Koi bhi number jiske end mein <b>5</b> hai — uska square 3 second mein.<br><br>1) Aage wala number lo<br>2) Usse <b>agle</b> number se multiply karo<br>3) Peeche <b>25</b> laga do',
+        ex:'25² → 2 × 3 = 6  →  625\n35² → 3 × 4 = 12 → 1225\n85² → 8 × 9 = 72 → 7225' },
+      { h:'Khud try karo',
+        b:'45² kya hoga? 4 ke aage 5 aata hai. 4 × 5 = 20. Peeche 25.',
+        ex:'45²  =  2025\n65²  →  6 × 7 = 42  →  4225' },
+    ]
+  },
+  {
+    id:'dec', icon:'0.1', color:'var(--purple)',
+    title:'Decimal Aur Paisa',
+    blurb:'10, 100, 1000 se divide — decimal khiskao.',
+    checkTopic:'dec', checkDiff:'medium',
+    cards:[
+      { h:'10 se divide',
+        b:'Kisi bhi number ko 10 se divide karo → decimal <b>ek place LEFT</b> khisak jaata hai. Bas.',
+        ex:'33   ÷ 10  =  3.3\n0.33 ÷ 10  =  0.033' },
+      { h:'Jitne zero, utne place',
+        b:'100 mein do zero → <b>do place left</b>. 1000 mein teen zero → <b>teen place left</b>. Jagah kam pade to zero laga do.',
+        ex:'33 ÷ 100  =  0.33\n33 ÷ 1000 =  0.033\n0.03 ÷ 100 = 0.0003' },
+      { h:'1/30 kaise?',
+        b:'Neeche zero dikhe to usko <b>alag</b> karo. 30 = 3 × 10.',
+        ex:'1/30  =  1 / (3 × 10)\n↳ 1 ÷ 3 = 0.33\n↳ 0.33 ÷ 10 = 0.033' },
+      { h:'Paise ke roop mein socho 💰',
+        b:'Paisa humein bahut jaldi samajh aata hai. <b>0.05 = 5 paise.</b> 100 paise = ₹1.',
+        ex:'20 × 0.05\n↳ 5 paise, 20 baar\n↳ 100 paise\n↳ = 1' },
+      { h:'Kaun bada hai?',
+        b:'0.5 ya 0.05? <b>0.5 = 50 paise</b>, <b>0.05 = 5 paise</b>. Ab clear hai na?',
+        ex:'0.5  >  0.05\n50 paise > 5 paise' },
+    ]
+  },
+  {
+    id:'bodmas', icon:'()', color:'var(--red)',
+    title:'BODMAS',
+    blurb:'Kaunsa operation pehle? Order matters.',
+    checkTopic:'bodmas', checkDiff:'medium',
+    cards:[
+      { h:'Order hota hai',
+        b:'Maths mein jo pehle likha hai, woh pehle nahi hota. Ek <b>sequence</b> hai. Left-to-right karoge to galat aayega.',
+        ex:'B  — Bracket\nO  — Of / Order\nD  — Division\nM  — Multiplication\nA  — Addition\nS  — Subtraction' },
+      { h:'Classic trap',
+        b:'10 × 5 − 1. Kya karoge? <b>Multiply pehle.</b> Left-to-right karoge to 10 × 4 = 40 aa jayega — galat.',
+        ex:'10 × 5 − 1\n↳ 10 × 5 = 50\n↳ 50 − 1 = 49  ✓' },
+      { h:'Bracket sabse pehle',
+        b:'B sabse upar hai. Bracket dikhe — usko pehle khatam karo.',
+        ex:'(2 + 3) × 4\n↳ 5 × 4 = 20  ✓\n↳ 2 + 12 = 14 ✗' },
+      { h:'Mila-jula question',
+        b:'Ek saath sab aa jaye to ghabrao mat. <b>Order se</b> chalo, ek-ek step.',
+        ex:'(3 + 2) × 4 − 6 ÷ 2\n↳ B: 3+2 = 5\n↳ D: 6÷2 = 3\n↳ M: 5×4 = 20\n↳ S: 20−3 = 17' },
+      { h:'Maths mein har jagah',
+        b:'BODMAS har chapter mein lagega. Algebra, trigonometry, mensuration — <b>kahin bhi bhaago, BODMAS lagega hi.</b> Isliye ise pakka karo.',
+        ex:'Base pakka → sab aasan' },
+    ]
+  },
+];
+
+/* ============================================================
+   5. DIFFICULTY CONFIG
+   Targets come straight from class: "easy mode ko 30-45 second mein"
+   ============================================================ */
+const DIFFS = {
+  easy   : { name:'EASY',   cls:'grn', time:20, target:45,  desc:'Sign rules, like terms, squares' },
+  medium : { name:'MEDIUM', cls:'yel', time:16, target:90,  desc:'Chains, decimals, BODMAS start' },
+  hard   : { name:'HARD',   cls:'red', time:13, target:150, desc:'Full BODMAS, algebra, 5-term chains' },
+};
+const TOTAL_Q = 20;
+
+/* ============================================================
+   6. SCREEN ROUTER
+   ============================================================ */
+const SCREENS = ['title','menu','learn','lesson','diff','game','result'];
+function show(name){
+  SCREENS.forEach(s => $('screen-'+s).classList.toggle('on', s===name));
+}
+document.querySelectorAll('[data-back]').forEach(b =>
+  b.addEventListener('click', () => { Audio_.play('click'); stopGame(); show(b.dataset.back); })
+);
+
+/* ============================================================
+   7. MENU
+   ============================================================ */
+function refreshMenu(){
+  const done = LESSONS.filter(l => Store.d.lessons[l.id]).length;
+  $('m-lessons').textContent = done + '/' + LESSONS.length;
+  const best = Math.max(0, ...Object.values(Store.d.best || {}));
+  $('m-best').textContent = best ? best.toLocaleString('en-IN') : '—';
+  const bt = Store.d.bestTime && Store.d.bestTime.easy;
+  $('m-time').textContent = bt ? bt.toFixed(1)+'s' : '—';
+}
+
+$('screen-title').addEventListener('click', () => {
+  Audio_.init(); Audio_.resume();
+  Audio_.setBGM(Store.d.bgm); Audio_.setSFX(Store.d.sfx);
+  Audio_.play('start');
+  if(Store.d.bgm) Audio_.startBGM();
+  refreshMenu(); show('menu');
+});
+
+$('go-learn').addEventListener('click', () => { Audio_.play('click'); buildLearn(); show('learn'); });
+$('go-play' ).addEventListener('click', () => { Audio_.play('click'); buildDiff();  show('diff');  });
+
+function syncToggles(){
+  $('t-bgm').classList.toggle('off', !Store.d.bgm);
+  $('t-sfx').classList.toggle('off', !Store.d.sfx);
+}
+$('t-bgm').addEventListener('click', () => {
+  Store.d.bgm = !Store.d.bgm; Store.save(); Audio_.setBGM(Store.d.bgm);
+  if(Store.d.bgm) Audio_.startBGM(); else Audio_.stopBGM();
+  syncToggles(); Audio_.play('click');
+});
+$('t-sfx').addEventListener('click', () => {
+  Store.d.sfx = !Store.d.sfx; Store.save(); Audio_.setSFX(Store.d.sfx);
+  syncToggles(); Audio_.play('click');
+});
+syncToggles();
+
+/* ============================================================
+   8. LEARN
+   ============================================================ */
+function buildLearn(){
+  const wrap = $('lesson-list'); wrap.innerHTML = '';
+  LESSONS.forEach((l,i) => {
+    const b = document.createElement('button');
+    b.className = 'lcard';
+    b.style.setProperty('--c', l.color);
+    b.innerHTML =
+      '<div class="ic">' + l.icon + '</div>' +
+      '<div class="tx"><b>' + (i+1) + '. ' + l.title + '</b><span>' + l.blurb + '</span></div>' +
+      (Store.d.lessons[l.id] ? '<div class="done">✓</div>' : '');
+    b.addEventListener('click', () => { Audio_.play('click'); openLesson(l.id); });
+    wrap.appendChild(b);
+  });
+}
+
+let LS = null;  // { lesson, idx, phase:'cards'|'check', checks:[], ci:0, correct:0 }
+
+function openLesson(id){
+  const lesson = LESSONS.find(l => l.id === id);
+  buildLearn();   // a lesson can be entered straight from the report card; the
+                  // back button lands on the list, so it must always be built
+  $('ls-next').onclick = null;   // finishLesson() parks a handler here; if the
+                                 // student left via the back arrow it survives
+  LS = { lesson, idx:0, phase:'cards', checks:[], ci:0, correct:0 };
+  $('ls-title').textContent = lesson.title;
+  $('ls-title').style.setProperty('--c', lesson.color);
+  renderLesson();
+  show('lesson');
+}
+
+function renderLesson(){
+  const { lesson, idx, phase } = LS;
+  const body = $('ls-body'), dots = $('ls-dots');
+
+  if(phase === 'cards'){
+    const c = lesson.cards[idx];
+    body.innerHTML =
+      '<div class="slide" style="--c:' + lesson.color + '">' +
+        '<h3>' + c.h + '</h3><p>' + c.b + '</p>' +
+        '<div class="ex">' + c.ex + '</div>' +
+      '</div>';
+    dots.innerHTML = lesson.cards.map((_,i) =>
+      '<div class="dot' + (i===idx ? ' on':'') + '"></div>').join('');
+    $('ls-next').textContent = (idx === lesson.cards.length-1) ? 'AB PRACTICE →' : 'NEXT →';
+    $('ls-next').className = 'btn grn';
+    return;
+  }
+
+  // ---- check phase ----
+  const q = LS.checks[LS.ci];
+  dots.innerHTML = LS.checks.map((_,i) =>
+    '<div class="dot' + (i===LS.ci ? ' on':'') + '"></div>').join('');
+
+  body.innerHTML =
+    '<div class="slide" style="--c:var(--yellow)">' +
+      '<h3>Check — ' + (LS.ci+1) + '/' + LS.checks.length + '</h3>' +
+      '<div class="ex" style="color:#fff;font-size:26px;margin-top:4px">' + q.q + '</div>' +
+      '<div class="opts" id="ls-opts" style="margin-top:16px"></div>' +
+    '</div>';
+
+  const ow = $('ls-opts');
+  q.opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = o.label;
+    b.addEventListener('click', () => {
+      [...ow.children].forEach(x => x.disabled = true);
+      if(o.ok){
+        b.classList.add('right'); Audio_.play('right'); LS.correct++;
+      } else {
+        b.classList.add('wrong'); Audio_.play('wrong');
+        [...ow.children].forEach(x => { if(x.textContent === String(q.opts.find(z=>z.ok).label)) x.classList.add('right'); });
+        shakeIt();
+      }
+      showFB(o.ok, q.why, () => {
+        LS.ci++;
+        if(LS.ci < LS.checks.length) renderLesson();
+        else finishLesson();
+      });
+    });
+    ow.appendChild(b);
+  });
+
+  $('ls-next').textContent = 'CHOOSE AN ANSWER';
+  $('ls-next').className = 'btn ghost';
+}
+
+$('ls-next').addEventListener('click', () => {
+  if(!LS || LS.phase !== 'cards') return;
+  Audio_.play('move');
+  if(LS.idx < LS.lesson.cards.length - 1){ LS.idx++; renderLesson(); }
+  else {
+    LS.phase = 'check';
+    LS.checks = Array.from({length:3}, () => genQuestion(LS.lesson.checkTopic, LS.lesson.checkDiff));
+    LS.ci = 0; LS.correct = 0;
+    renderLesson();
+  }
+});
+
+function finishLesson(){
+  Audio_.play('level');
+  Store.d.lessons[LS.lesson.id] = true; Store.save();
+  const c = LS.correct, n = LS.checks.length;
+  $('ls-body').innerHTML =
+    '<div class="slide center" style="--c:var(--green);padding:34px 18px">' +
+      '<div style="font-size:52px;margin-bottom:8px">✅</div>' +
+      '<h3 style="margin-bottom:8px">LESSON CLEAR</h3>' +
+      '<div class="bignum" style="color:var(--green);margin:10px 0">' + c + '/' + n + '</div>' +
+      '<p style="font-size:13.5px;color:var(--dim);line-height:1.7">' +
+        (c === n ? 'Ekdam sahi. Ab Play mein speed banao.'
+                 : 'Galti hui? Achhi baat hai — ab yaad rahega.<br>Play mein practice karo, pakka ho jayega.') +
+      '</p>' +
+    '</div>';
+  $('ls-dots').innerHTML = '';
+  $('ls-next').textContent = '← BACK TO LESSONS';
+  $('ls-next').className = 'btn';
+  $('ls-next').onclick = () => { Audio_.play('click'); $('ls-next').onclick=null; buildLearn(); refreshMenu(); show('learn'); };
+}
+
+/* ============================================================
+   9. FEEDBACK OVERLAY
+   Correct  -> quick auto-advance (arcade pace)
+   Wrong    -> must read the working, then tap (relearn loop)
+   ============================================================ */
+let fbCb = null;
+function showFB(ok, why, cb){
+  const card = $('fbcard');
+  card.style.setProperty('--c', ok ? 'var(--green)' : 'var(--red)');
+  $('fb-emoji').textContent = ok ? '✅' : '💡';
+  $('fb-title').textContent = ok ? 'SAHI!' : 'RUKO — DEKHO';
+  $('fb-msg').innerHTML = ok
+    ? pick(['Bilkul sahi. Aage badho.','Kya baat hai!','Well done, dost.','Ekdam correct.'])
+    : 'Yeh silly mistake nahi hai. Yeh important hai. Ek baar dhyan se dekho — phir yaad rahega.';
+  $('fb-work').textContent = why;
+  $('fb-next').className = ok ? 'btn grn' : 'btn red';
+  $('fb-next').textContent = ok ? 'AGE BADHO →' : 'SAMAJH GAYA →';
+  fbCb = cb;
+  $('fb').classList.add('on');
+
+  if(ok){ setTimeout(() => { if($('fb').classList.contains('on')) closeFB(); }, 900); }
+}
+function closeFB(){
+  $('fb').classList.remove('on');
+  const c = fbCb; fbCb = null;
+  if(c) c();
+}
+$('fb-next').addEventListener('click', () => { Audio_.play('click'); closeFB(); });
+
+function shakeIt(){
+  const a = $('app'); a.classList.remove('shake'); void a.offsetWidth; a.classList.add('shake');
+}
+function popText(txt, color, x, y){
+  const e = document.createElement('div');
+  e.className = 'pop'; e.textContent = txt;
+  e.style.color = color; e.style.textShadow = '0 0 16px ' + color;
+  e.style.left = x + 'px'; e.style.top = y + 'px';
+  document.body.appendChild(e);
+  setTimeout(() => e.remove(), 1000);
+}
+
+/* ============================================================
+   10. DIFFICULTY SELECT
+   ============================================================ */
+function buildDiff(){
+  const w = $('diff-list'); w.innerHTML = '';
+  Object.entries(DIFFS).forEach(([k,d]) => {
+    const bt = Store.d.bestTime[k], bs = Store.d.best[k];
+    const b = document.createElement('button');
+    b.className = 'btn ' + d.cls;
+    b.innerHTML = d.name + '<small>' + d.desc + '<br>' +
+      (bs ? 'Best: ' + bs.toLocaleString('en-IN') + ' pts · ' + bt.toFixed(1) + 's'
+          : 'Target: ' + d.target + 's') + '</small>';
+    b.addEventListener('click', () => { Audio_.play('click'); countdown(k); });
+    w.appendChild(b);
+  });
+}
+
+/* ============================================================
+   11. GAME
+   ============================================================ */
+let G = null;
+let rafId = null, tickTimer = null;
+
+function countdown(diff){
+  show('game');
+  $('cd').classList.add('on');
+  let n = 3;
+  $('cd-n').textContent = n;
+  Audio_.play('cd');
+  const iv = setInterval(() => {
+    n--;
+    if(n > 0){ $('cd-n').textContent = n; Audio_.play('cd'); reflow($('cd-n')); }
+    else{
+      clearInterval(iv);
+      $('cd-n').textContent = 'GO!'; Audio_.play('go'); reflow($('cd-n'));
+      setTimeout(() => { $('cd').classList.remove('on'); startGame(diff); }, 480);
+    }
+  }, 700);
+}
+function reflow(el){ el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
+
+function startGame(diff){
+  G = {
+    diff, i:0, score:0, combo:0, maxCombo:0,
+    correct:0, penalty:0,
+    t0: performance.now(),
+    qStart:0, qEnd:0, locked:false,
+    stats:{}, cur:null,
+  };
+  nextQ();
+  rafId = requestAnimationFrame(loop);
+}
+
+function stopGame(){
+  if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+  if(tickTimer){ clearTimeout(tickTimer); tickTimer = null; }
+  $('fb').classList.remove('on'); fbCb = null;
+  G = null;
+}
+
+function nextQ(){
+  if(!G) return;
+  if(G.i >= TOTAL_Q){ endGame(); return; }
+
+  const topic = pick(POOL[G.diff]);
+  const q = genQuestion(topic, G.diff);
+  G.cur = q;
+  G.locked = false;
+
+  if(!G.stats[topic]) G.stats[topic] = { right:0, total:0 };
+  G.stats[topic].total++;
+
+  $('h-q').textContent = (G.i + 1) + '/' + TOTAL_Q;
+  $('q-tag').textContent = TOPICS[topic].name;
+  $('q-text').textContent = q.q;
+  $('q-text').classList.toggle('long', q.q.length > 15);
+  $('q-hint').textContent = q.hint || '';
+
+  const ow = $('opts'); ow.innerHTML = '';
+  q.opts.forEach((o,idx) => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = o.label; b.dataset.k = idx;
+    b.addEventListener('click', ev => answer(o, b, ev));
+    ow.appendChild(b);
+  });
+
+  const secs = DIFFS[G.diff].time;
+  G.qStart = performance.now();
+  G.qEnd   = G.qStart + secs*1000;
+  $('tbar').classList.remove('warn');
+}
+
+function loop(now){
+  if(!G){ return; }
+  rafId = requestAnimationFrame(loop);
+
+  // total clock (includes wrong-answer penalties)
+  const total = (now - G.t0)/1000 + G.penalty;
+  $('h-clock').textContent = total.toFixed(1);
+
+  if(G.locked) return;
+
+  const left = (G.qEnd - now)/1000;
+  const frac = Math.max(0, left / DIFFS[G.diff].time);
+  $('tfill').style.transform = 'scaleX(' + frac + ')';
+
+  if(left <= 3 && !$('tbar').classList.contains('warn')) $('tbar').classList.add('warn');
+  if(left <= 3 && !tickTimer && left > 0){
+    tickTimer = setTimeout(function tk(){
+      if(G && !G.locked && (G.qEnd - performance.now())/1000 <= 3){ Audio_.play('tick'); tickTimer = setTimeout(tk, 500); }
+      else tickTimer = null;
+    }, 0);
+  }
+  if(left <= 0) timeout();
+}
+
+function answer(o, btn, ev){
+  if(!G || G.locked) return;
+  G.locked = true;
+  if(tickTimer){ clearTimeout(tickTimer); tickTimer = null; }
+
+  const ow = $('opts');
+  [...ow.children].forEach(x => x.disabled = true);
+
+  const topic = G.cur.topic;
+
+  if(o.ok){
+    btn.classList.add('right');
+    [...ow.children].forEach(x => { if(x !== btn) x.classList.add('fade'); });
+
+    G.correct++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
+    G.stats[topic].right++;
+
+    const mult = Math.min(5, 1 + Math.floor(G.combo/3));
+    const left = Math.max(0, (G.qEnd - performance.now())/1000);
+    const gain = 100*mult + Math.round(left*5);
+    G.score += gain;
+
+    Audio_.play(G.combo >= 3 && G.combo % 3 === 0 ? 'combo' : 'right');
+
+    const r = btn.getBoundingClientRect();
+    popText('+' + gain, 'var(--green)', r.left + r.width/2, r.top);
+    if(G.combo >= 3 && G.combo % 3 === 0)
+      popText('COMBO ×' + mult, 'var(--magenta)', window.innerWidth/2, r.top - 46);
+
+    updHUD();
+    setTimeout(() => { G && (G.i++, nextQ()); }, 480);
+
+  } else {
+    btn.classList.add('wrong');
+    [...ow.children].forEach(x => { if(x.textContent === G.cur.opts.find(z=>z.ok).label) x.classList.add('right'); });
+
+    G.combo = 0;
+    G.penalty += 5;                       // time cost, not a life. Nobody gets knocked out.
+    Audio_.play('wrong'); shakeIt();
+    updHUD();
+
+    showFB(false, G.cur.why, () => { if(G){ G.i++; nextQ(); } });
+  }
+}
+
+function timeout(){
+  if(!G || G.locked) return;
+  G.locked = true;
+  if(tickTimer){ clearTimeout(tickTimer); tickTimer = null; }
+  const ow = $('opts');
+  [...ow.children].forEach(x => {
+    x.disabled = true;
+    if(x.textContent === G.cur.opts.find(z=>z.ok).label) x.classList.add('right');
+  });
+  G.combo = 0; G.penalty += 5;
+  Audio_.play('wrong'); shakeIt(); updHUD();
+  showFB(false, 'Time khatam!\n\n' + G.cur.why, () => { if(G){ G.i++; nextQ(); } });
+}
+
+function updHUD(){
+  $('h-score').textContent = G.score.toLocaleString('en-IN');
+  const mult = Math.min(5, 1 + Math.floor(G.combo/3));
+  $('h-combo').textContent = '×' + mult;
+  $('combo').classList.toggle('hot', G.combo >= 3);
+}
+
+/* ============================================================
+   12. RESULTS + COACH
+   ============================================================ */
+function endGame(){
+  const secs = (performance.now() - G.t0)/1000 + G.penalty;
+  const acc  = Math.round(G.correct / TOTAL_Q * 100);
+  const d    = DIFFS[G.diff];
+  const diff = G.diff;
+
+  if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+  Audio_.play(acc >= 80 ? 'level' : 'over');
+
+  // records
+  const prevBest = Store.d.best[diff] || 0;
+  const isRecord = G.score > prevBest;
+  if(isRecord){ Store.d.best[diff] = G.score; Store.d.bestTime[diff] = secs; }
+  Store.save();
+
+  $('r-score').textContent = G.score.toLocaleString('en-IN');
+  $('r-acc').textContent   = acc + '%';
+  $('r-time').textContent  = secs.toFixed(1) + 's';
+  $('r-target').textContent= d.target + 's';
+
+  const pill = $('r-pill');
+  if(isRecord){ pill.textContent = '★ NEW BEST'; pill.style.cssText = 'background:var(--yellow);color:#111'; }
+  else        { pill.textContent = d.name;            pill.style.cssText = 'background:rgba(255,255,255,.1);color:var(--dim)'; }
+
+  // per-topic bars, weakest first
+  const rows = Object.entries(G.stats)
+    .map(([k,v]) => ({ k, ...v, pct: Math.round(v.right/v.total*100) }))
+    .sort((a,b) => a.pct - b.pct);
+
+  $('r-bars').innerHTML = rows.map(r =>
+    '<div class="bar' + (r.pct < 60 ? ' bad' : '') + '">' +
+      '<div class="lb"><span>' + TOPICS[r.k].name + '</span><span>' + r.right + '/' + r.total + '</span></div>' +
+      '<div class="tr"><i style="width:' + r.pct + '%"></i></div>' +
+    '</div>').join('');
+
+  // coach message — the teacher's philosophy, never shaming
+  const weak = rows[0];
+  let coach;
+  if(acc >= 90){
+    coach = '<b>Base ban raha hai.</b> Ab speed pe kaam karo. Target ' + d.target + 's hai, tum ' + secs.toFixed(0) + 's pe ho. ' +
+            (diff !== 'hard' ? 'Agli baar upar wali difficulty try karo.' : 'Ab isko roz khelo — 30s tak le aao.');
+  } else if(acc >= 60){
+    coach = '<b>Galtiyan ho rahi hain — matlab seekh rahe ho.</b> Jo kuch nahi seekhta, usse galti hoti hi nahi. ' +
+            'Paanch baar sahi banega, chhathi baar galti. Phir karte-karte galti karna chhod doge.';
+  } else {
+    coach = '<b>Ruko mat, ghabrao mat.</b> Ghar zameen se banta hai, hawa mein pehla floor nahi banta. ' +
+            'Ek baar Learn section wapas dekho, phir yahan aao. Do din mein farak dikhega.';
+  }
+  if(weak && weak.pct < 80){
+    coach += '<br><br>🎯 <b>Sabse zyada galti:</b> ' + TOPICS[weak.k].name + ' (' + weak.right + '/' + weak.total + '). Kal isi pe focus.';
+    $('r-weak-wrap').style.display = 'block';
+    $('r-weak').textContent = '📖 LEARN: ' + TOPICS[weak.k].name.toUpperCase();
+    $('r-weak').onclick = () => { Audio_.play('click'); openLesson(TOPICS[weak.k].lesson); };
+  } else {
+    $('r-weak-wrap').style.display = 'none';
+  }
+  if(G.maxCombo >= 5) coach += '<br><br>🔥 Best combo: <b>' + G.maxCombo + ' in a row.</b>';
+  $('r-coach').innerHTML = coach;
+
+  $('r-again').onclick = () => { Audio_.play('click'); countdown(diff); };
+  G = null;
+  refreshMenu();
+  show('result');
+}
+
+$('r-menu').addEventListener('click', () => { Audio_.play('click'); stopGame(); refreshMenu(); show('menu'); });
+
+/* ============================================================
+   13. KEYBOARD (laptop / projector use in class)
+   ============================================================ */
+document.addEventListener('keydown', e => {
+  if($('fb').classList.contains('on')){
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); Audio_.play('click'); closeFB(); }
+    return;
+  }
+  if($('screen-game').classList.contains('on') && G && !G.locked){
+    const n = parseInt(e.key, 10);
+    if(n >= 1 && n <= 4){ const b = $('opts').children[n-1]; if(b) b.click(); }
+  }
+  if($('screen-title').classList.contains('on') && (e.key === 'Enter' || e.key === ' ')) $('screen-title').click();
+  if($('screen-lesson').classList.contains('on') && e.key === 'Enter') $('ls-next').click();
+});
+
+/* keep audio alive after tab switches */
+document.addEventListener('visibilitychange', () => { if(!document.hidden) Audio_.resume(); });
+
+</script>
+</body>
+</html>
