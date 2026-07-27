@@ -217,7 +217,7 @@ h2{font-size:20px;font-weight:700}
 .pk{padding:15px 0;border-radius:12px;background:var(--card);border:1px solid var(--line);
   font-family:var(--mono);font-size:19px;font-weight:600;transition:transform .06s}
 .pk:active{transform:scale(.94)}
-.pk.go{grid-column:span 4;background:var(--grad);border:0;font-family:var(--disp);font-size:16px;letter-spacing:-.01em}
+.pk.go{grid-column:span 3;background:var(--grad);border:0;font-family:var(--disp);font-size:16px;letter-spacing:-.01em}
 
 /* --- feedback overlay --- */
 #fb{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
@@ -1618,7 +1618,7 @@ function renderAnswerArea(q){
 }
 
 /* --- number pad --- */
-const PAD_KEYS = ['7','8','9','⌫','4','5','6','±','1','2','3','.'];
+const PAD_KEYS = ['7','8','9','⌫','4','5','6','±','1','2','3','.','0'];
 function buildPad(){
   const p = $('pad');
   if(p.childElementCount) return;
